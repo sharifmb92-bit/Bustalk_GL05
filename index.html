@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BusTalk Global</title>
+    <!-- Tailwind para los estilos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     
@@ -24,6 +25,18 @@
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans min-h-screen flex flex-col justify-between p-4 selection:bg-yellow-500/30">
 
+    <!-- 🌟 ALERTA PERSONALIZADA (Adiós al "github.io dice...") 🌟 -->
+    <div id="alertaPersonalizada" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/70 backdrop-blur-sm transition-opacity">
+        <div class="bg-gray-900 border border-gray-700 p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center mx-4">
+            <div class="text-yellow-500 text-4xl mb-3">⚠️</div>
+            <p id="textoAlerta" class="text-white text-sm mb-6 leading-relaxed">Mensaje de error aquí.</p>
+            <button onclick="cerrarAlerta()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-black py-3 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-wider text-sm">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE LOGIN -->
     <div id="pantallaLogin" class="max-w-md w-full mx-auto my-auto bg-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-800">
         <div class="text-center mb-7">
             <div class="inline-flex items-center justify-center p-4 bg-yellow-500/10 rounded-full text-yellow-500 mb-4 animacion-bus">
@@ -58,6 +71,7 @@
         </div>
     </div>
 
+    <!-- PANTALLA PRINCIPAL DE LA APP -->
     <div id="pantallaApp" class="max-w-md w-full mx-auto bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-800 flex-col flex-1 hidden">
         
         <div class="bg-parabolica p-4 flex justify-between items-center border-b border-gray-800 shadow-md">
@@ -75,7 +89,7 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <button onclick="conectarBluetooth()" class="p-2 bg-gray-800/80 text-blue-400 rounded-lg border border-gray-700/50 hover:bg-gray-700 transition-all cursor-pointer">
+                <button onclick="conectarBluetooth()" class="p-2 bg-gray-800/80 text-blue-400 rounded-lg border border-gray-700/50 hover:bg-gray-700 transition-all cursor-pointer" title="Bluetooth">
                     🎙️
                 </button>
                 <button onclick="salirApp()" class="p-2 bg-red-950/80 text-red-400 rounded-lg border border-red-900/50 hover:bg-red-900 transition-all cursor-pointer font-bold text-xs">
@@ -173,6 +187,16 @@
             if (miPeerId) deleteDoc(doc(db, "usuarios_activos", miPeerId));
         });
 
+        // 🌟 FUNCIONES DE LA ALERTA PERSONALIZADA 🌟
+        window.mostrarAlerta = function(mensaje) {
+            document.getElementById('textoAlerta').textContent = mensaje;
+            document.getElementById('alertaPersonalizada').classList.remove('hidden');
+        };
+
+        window.cerrarAlerta = function() {
+            document.getElementById('alertaPersonalizada').classList.add('hidden');
+        };
+
         async function mantenerPantallaEncendida() {
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
             catch (err) {}
@@ -183,7 +207,9 @@
             const inputComunidad = document.getElementById('inputComunidad').value.trim().toUpperCase();
             const inputBus = document.getElementById('inputBus').value.trim();
 
-            if (!inputNombre || !inputComunidad || !inputBus) return alert("Rellena todos los campos.");
+            if (!inputNombre || !inputComunidad || !inputBus) {
+                return mostrarAlerta("Por favor, rellena todos los campos para continuar.");
+            }
 
             usuario = inputNombre;
             comunidad = inputComunidad;
@@ -200,7 +226,6 @@
         };
 
         function iniciarWebRTC() {
-            // MEJORA 1: Añadidos los servidores STUN de Google para que la voz no se bloquee por las antenas 4G o redes cerradas.
             miPeer = new Peer({
                 config: {
                     'iceServers': [
@@ -219,12 +244,12 @@
                 escucharSenalesVisuales();
             });
 
-            // RECIBIR LLAMADA Y REPRODUCIR
+            // RECIBIR LLAMADA Y GRABAR
             miPeer.on('call', (llamadaEntrante) => {
                 llamadaEntrante.answer(); 
                 llamadaEntrante.on('stream', (flujoAudioRemoto) => {
                     reproducirAudioEnVivo(flujoAudioRemoto, llamadaEntrante);
-                    grabarAudioTemporalParaReplay(flujoAudioRemoto);
+                    grabarAudioTemporalParaReplay(flujoAudioRemoto, llamadaEntrante);
                 });
             });
         }
@@ -277,7 +302,7 @@
                 temporizadorAlarma = setTimeout(activarAlarmaOlvido, 30000);
 
             } catch (error) {
-                alert("Por favor, permite el acceso al micrófono en tu tablet para poder hablar.");
+                mostrarAlerta("Permiso de micrófono denegado. Configura tu tablet para permitir el acceso.");
                 window.detenerMicrofono();
             }
         }
@@ -336,26 +361,27 @@
             const audioElem = document.createElement('audio');
             audioElem.srcObject = stream;
             audioElem.autoplay = true;
-            audioElem.playsInline = true; // MEJORA 2: Obligatorio para tablets iOS/Safari
+            audioElem.playsInline = true; 
             
-            // Forzar reproducción por si la tablet la detiene
             audioElem.onloadedmetadata = () => {
                 audioElem.play().catch(e => console.error("Auto-play bloqueado por la tablet", e));
             };
             
             contenedor.appendChild(audioElem);
 
-            // Eliminar reproductor cuando cuelgan
             llamadaEntrante.on('close', () => audioElem.remove());
             stream.getTracks()[0].onended = () => audioElem.remove();
         }
 
-        function grabarAudioTemporalParaReplay(stream) {
+        // 🌟 MEJORA: GRABAR AUDIO HASTA QUE SE CIERRE LA LLAMADA 🌟
+        function grabarAudioTemporalParaReplay(stream, llamadaEntrante) {
             fragmentosAudioEnMemoria = [];
-            // MEJORA 3: Formato universal para evitar fallos en ciertas tablets
             grabadoraLocal = new MediaRecorder(stream);
             
-            grabadoraLocal.ondataavailable = e => fragmentosAudioEnMemoria.push(e.data);
+            grabadoraLocal.ondataavailable = e => { 
+                if (e.data.size > 0) fragmentosAudioEnMemoria.push(e.data); 
+            };
+            
             grabadoraLocal.onstop = () => {
                 const blob = new Blob(fragmentosAudioEnMemoria); 
                 if (urlUltimoAudioMemoria) URL.revokeObjectURL(urlUltimoAudioMemoria);
@@ -363,6 +389,12 @@
             };
             
             grabadoraLocal.start();
+
+            // Esto es vital: Cierra el archivo cuando el compañero suelta el botón
+            llamadaEntrante.on('close', () => {
+                if(grabadoraLocal && grabadoraLocal.state !== "inactive") grabadoraLocal.stop();
+            });
+            
             stream.getTracks()[0].onended = () => { 
                 if(grabadoraLocal && grabadoraLocal.state !== "inactive") grabadoraLocal.stop(); 
             };
@@ -374,7 +406,7 @@
                 reproductor.src = urlUltimoAudioMemoria;
                 reproductor.play();
             } else {
-                alert("Aún no has recibido ningún mensaje de radio que se haya podido grabar.");
+                mostrarAlerta("Aún no has recibido ningún mensaje de radio que se haya podido grabar o la transmisión fue muy corta.");
             }
         };
 
@@ -431,7 +463,6 @@
             
             lista.insertBefore(item, lista.firstChild);
 
-            // MEJORA 4: Limpieza de pantalla. Si hay más de 3 mensajes, borra el más antiguo.
             if (lista.children.length > 3) {
                 lista.removeChild(lista.lastChild);
             }
@@ -453,9 +484,9 @@
         window.conectarBluetooth = async function() {
             try {
                 const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-                alert("Vinculado al manos libres: " + device.name);
+                mostrarAlerta("Vinculado al manos libres: " + device.name);
             } catch (e) {
-                alert("Buscando sistemas de audio...");
+                mostrarAlerta("Buscando sistemas de audio manos libres vinculados a la tablet...");
             }
         };
     </script>
