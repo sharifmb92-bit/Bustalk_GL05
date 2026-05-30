@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BusTalk Global</title>
+    <!-- Tailwind para los estilos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+    
+    <!-- PeerJS para audio P2P en tiempo real (Estilo Walkie-Talkie real) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
     <style>
-        /* Fondo de la antena parabólica original para la cabecera */
         .bg-parabolica {
             background-image: linear-gradient(to bottom, rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 0.95)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=500&q=80');
             background-size: cover;
             background-position: center;
         }
-        /* Animación personalizada para el parpadeo suave del autobús del inicio */
         @keyframes parpadeoBus {
             0%, 100% { opacity: 0.4; transform: scale(0.98); }
             50% { opacity: 1; transform: scale(1.02); filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.4)); }
@@ -27,6 +27,7 @@
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans min-h-screen flex flex-col justify-between p-4 selection:bg-yellow-500/30">
 
+    <!-- PANTALLA DE LOGIN -->
     <div id="pantallaLogin" class="max-w-md w-full mx-auto my-auto bg-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-800">
         <div class="text-center mb-7">
             <div class="inline-flex items-center justify-center p-4 bg-yellow-500/10 rounded-full text-yellow-500 mb-4 animacion-bus">
@@ -50,17 +51,18 @@
                     <input type="text" id="inputBus" placeholder="180" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-3 text-white text-center font-bold focus:outline-none focus:border-yellow-500 transition-colors">
                 </div>
                 <div class="col-span-2">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Código de Grupo / Línea</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Código de Línea</label>
                     <input type="text" id="inputComunidad" placeholder="Ej: LINEA-01" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white uppercase font-mono tracking-wider focus:outline-none focus:border-yellow-500 transition-colors">
                 </div>
             </div>
 
-            <button onclick="conectarComunidad()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-black py-3 rounded-xl transition-all shadow-lg shadow-yellow-900/20 active:scale-98 cursor-pointer mt-2 uppercase tracking-wider text-sm">
+            <button onclick="iniciarApp()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-gray-950 font-black py-3 rounded-xl transition-all shadow-lg shadow-yellow-900/20 active:scale-98 cursor-pointer mt-2 uppercase tracking-wider text-sm">
                 Iniciar Terminal
             </button>
         </div>
     </div>
 
+    <!-- PANTALLA PRINCIPAL DE LA APP -->
     <div id="pantallaApp" class="max-w-md w-full mx-auto bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-800 flex-col flex-1 hidden">
         
         <div class="bg-parabolica p-4 flex justify-between items-center border-b border-gray-800 shadow-md">
@@ -91,10 +93,10 @@
             
             <div class="bg-gray-950 border border-gray-850 rounded-xl p-3 flex flex-col gap-3 flex-1 justify-between min-h-[150px]">
                 <div>
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Conductores activos en tu grupo:</span>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Compañeros en ruta:</span>
                     <div id="listaUsuariosConectados" class="flex flex-wrap gap-1.5 text-xs">
                         <span class="bg-gray-900 text-gray-400 px-2 py-0.5 rounded-md border border-gray-800 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Buscando...
+                            <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></span> Conectando...
                         </span>
                     </div>
                 </div>
@@ -106,36 +108,44 @@
                     </div>
                 </div>
 
-                <div id="contenedorAudio" class="hidden">
-                    <audio id="audioReproductor" autoplay controls class="w-full h-8 mt-1"></audio>
-                </div>
+                <!-- Contenedores ocultos de audio -->
+                <div id="contenedorAudio" class="hidden"></div>
+                <audio id="audioReplayLocal" class="hidden"></audio>
             </div>
 
             <div class="flex items-center justify-between gap-2 py-4 px-2 bg-gray-900/50 rounded-2xl border border-gray-800/40">
                 
-                <button onclick="repetirUltimoAudio()" id="btnReplay" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
+                <button onclick="repetirUltimoAudioLocal()" id="btnReplay" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
                     <span class="block text-xl mb-1">↩️</span>
                     <span class="block text-[9px] font-black uppercase tracking-wider leading-none text-gray-400">Repetir</span>
                 </button>
 
-                <button id="btnPTT" onclick="toggleTransmision(false)" class="w-28 h-28 rounded-full bg-yellow-500 border-4 border-yellow-600/40 flex flex-col items-center justify-center transition-all duration-300 shadow-xl shadow-yellow-950/10 cursor-pointer select-none active:scale-95 z-10 shrink-0">
+                <!-- NUEVOS BOTONES DE "TOCAR PARA ABRIR / CERRAR" -->
+                <button id="btnPTT" onclick="toggleMicrofono(false)" class="w-28 h-28 rounded-full bg-yellow-500 border-4 border-yellow-600/40 flex flex-col items-center justify-center transition-all duration-300 shadow-xl shadow-yellow-950/10 cursor-pointer select-none active:scale-95 z-10 shrink-0">
                     <span id="pttIcon" class="text-gray-950 text-2xl mb-0.5">🎙️</span>
-                    <span id="pttTexto" class="text-[9px] font-black text-gray-950 uppercase tracking-wider text-center px-1 leading-tight">Pulsar para hablar</span>
+                    <span id="pttTexto" class="text-[9px] font-black text-gray-950 uppercase tracking-wider text-center px-1 leading-tight">Tocar para hablar</span>
                 </button>
 
-                <button onclick="toggleTransmision(true)" id="btnBroadcast" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
+                <button id="btnBroadcast" onclick="toggleMicrofono(true)" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
                     <span id="btnBroadcastIcon" class="block text-xl mb-1">📢</span>
                     <span id="btnBroadcastTexto" class="block text-[9px] font-black uppercase tracking-wider leading-none text-gray-400">A Todos</span>
                 </button>
                 
             </div>
-            <p class="text-[10px] text-gray-500 text-center leading-tight">Seguridad Vial: Un toque abre el canal de forma fija y otro lo cierra. No mantengas pulsado mientras conduces.</p>
+            <p class="text-[10px] text-gray-500 text-center leading-tight">Seguridad Vial: Un toque abre el canal, otro lo cierra. Si olvidas cerrarlo, sonará una alarma.</p>
 
         </div>
     </div>
 
-    <script>
-        // Tus credenciales reales de Firebase insertadas de forma segura y directa
+    <!-- SCRIPT FIREBASE Y PEERJS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, doc, setDoc, addDoc, getDocs, onSnapshot, 
+            query, where, orderBy, limit, serverTimestamp, deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // TUS CREDENCIALES
         const firebaseConfig = {
             apiKey: "AIzaSyC7b6_T0ze2HgXiYHfvUeL12JSXE7ZKogc",
             authDomain: "misturnos-fe3ea.firebaseapp.com",
@@ -147,28 +157,45 @@
             measurementId: "G-B6RRDBDM4R"
         };
 
-        // Inicialización de la base de datos (Compat)
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
+        // Variables de la App
         let usuario = "";
         let comunidad = "";
         let numBus = "";
-        let transmitiendo = false;
-        let esBroadcastGlobal = false;
-        let urlUltimoAudioRecibido = ""; 
-        let desvincularSala = null;
-        let desvincularGlobal = null;
+        let wakeLock = null; 
+        
+        // Variables WebRTC (Audio)
+        let miPeer = null;
+        let miPeerId = null;
+        let flujoMicrofonoLocal = null;
+        let llamadasActivas = [];
+        let grabadoraLocal = null;
+        let urlUltimoAudioMemoria = null;
+        let fragmentosAudioEnMemoria = [];
+        let desvincularSenales = null;
+        let desvincularConectados = null;
 
-        function conectarComunidad() {
+        // Variables de SEGURIDAD ANTI-OLVIDO
+        let temporizadorAlarma = null;
+        let intervaloAlarma = null;
+
+        window.addEventListener('beforeunload', () => {
+            if (miPeerId) deleteDoc(doc(db, "usuarios_activos", miPeerId));
+        });
+
+        async function mantenerPantallaEncendida() {
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
+            catch (err) { console.error('WakeLock no soportado'); }
+        }
+
+        window.iniciarApp = function() {
             const inputNombre = document.getElementById('inputNombre').value.trim();
             const inputComunidad = document.getElementById('inputComunidad').value.trim().toUpperCase();
             const inputBus = document.getElementById('inputBus').value.trim();
 
-            if (!inputNombre || !inputComunidad || !inputBus) {
-                alert("Por favor, rellena todos los campos.");
-                return;
-            }
+            if (!inputNombre || !inputComunidad || !inputBus) return alert("Rellena todos los campos.");
 
             usuario = inputNombre;
             comunidad = inputComunidad;
@@ -176,161 +203,258 @@
 
             document.getElementById('txtNumeroBus').textContent = numBus;
             document.getElementById('txtComunidadActiva').textContent = `GRUPO: ${comunidad}`;
-
             document.getElementById('pantallaLogin').classList.add('hidden');
             document.getElementById('pantallaApp').classList.remove('hidden');
             document.getElementById('pantallaApp').classList.add('flex');
 
-            registrarPresencia();
-            escucharCanales();
-        }
+            mantenerPantallaEncendida();
+            iniciarWebRTC();
+        };
 
-        function salirApp() {
-            if (transmitiendo) toggleTransmision(esBroadcastGlobal);
-            if (desvincularSala) desvincularSala();
-            if (desvincularGlobal) desvincularGlobal();
+        // --- MOTOR DE AUDIO ---
+        function iniciarWebRTC() {
+            miPeer = new Peer();
 
-            document.getElementById('pantallaApp').classList.remove('flex');
-            document.getElementById('pantallaApp').classList.add('hidden');
-            document.getElementById('pantallaLogin').classList.remove('hidden');
-        }
-
-        function toggleTransmision(modoGlobal = false) {
-            const btnPTT = document.getElementById('btnPTT');
-            const iconPTT = document.getElementById('pttIcon');
-            const pttTexto = document.getElementById('pttTexto');
-            const btnBC = document.getElementById('btnBroadcast');
-            const iconBC = document.getElementById('btnBroadcastIcon');
-            const textoBC = document.getElementById('btnBroadcastTexto');
-
-            if (!transmitiendo) {
-                transmitiendo = true;
-                esBroadcastGlobal = modoGlobal;
-
-                if (esBroadcastGlobal) {
-                    btnBC.className = "flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-red-950 border border-red-500 text-red-400 font-bold scale-105 animate-pulse z-20 shrink-0";
-                    iconBC.textContent = "🚨";
-                    textoBC.textContent = "EN AIRE";
-                    btnPTT.className = "w-28 h-28 rounded-full bg-gray-900 border-4 border-gray-800 flex flex-col items-center justify-center opacity-40 shrink-0";
-                } else {
-                    btnPTT.className = "w-28 h-28 rounded-full bg-red-950 border-4 border-red-500 flex flex-col items-center justify-center transition-all duration-300 shadow-xl shadow-red-900/40 cursor-pointer scale-105 animate-pulse z-10 shrink-0";
-                    iconPTT.textContent = "🔊";
-                    iconPTT.className = "text-red-400 text-2xl mb-0.5";
-                    pttTexto.textContent = "HABLANDO...";
-                    pttTexto.className = "text-[9px] font-black text-red-400 uppercase tracking-wider text-center px-1 leading-tight";
-                }
-            } else {
-                transmitiendo = false;
-                
-                btnPTT.className = "w-28 h-28 rounded-full bg-yellow-500 border-4 border-yellow-600/40 flex flex-col items-center justify-center transition-all duration-300 shadow-xl shadow-yellow-950/20 cursor-pointer select-none active:scale-95 z-10 shrink-0";
-                iconPTT.textContent = "🎙️";
-                iconPTT.className = "text-gray-950 text-2xl mb-0.5";
-                pttTexto.textContent = "Pulsar para hablar";
-                pttTexto.className = "text-[9px] font-black text-gray-950 uppercase tracking-wider text-center px-1 leading-tight";
-                
-                btnBC.className = "flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95";
-                iconBC.textContent = "📢";
-                textoBC.textContent = "A Todos";
-                textoBC.className = "block text-[9px] font-black uppercase tracking-wider leading-none text-gray-400";
-
-                emitirPaqueteAudio();
-            }
-        }
-
-        function repetirUltimoAudio() {
-            const reproductor = document.getElementById('audioReproductor');
-            if (urlUltimoAudioRecibido) {
-                reproductor.src = urlUltimoAudioRecibido;
-                reproductor.play();
-            } else {
-                alert("No se ha recibido ninguna transmisión en esta sesión todavía.");
-            }
-        }
-
-        function registrarPresencia() {
-            db.collection("comunidades").doc(comunidad).collection("conectados").doc(usuario).set({
-                usuario: usuario, bus: numBus, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            miPeer.on('open', (id) => {
+                miPeerId = id;
+                setDoc(doc(db, "usuarios_activos", miPeerId), {
+                    usuario: usuario, bus: numBus, comunidad: comunidad, peerId: miPeerId, timestamp: serverTimestamp()
+                });
+                escucharConectados();
+                escucharSenalesVisuales();
             });
 
-            db.collection("comunidades").doc(comunidad).collection("conectados")
-              .onSnapshot((snapshot) => {
-                  const contenedor = document.getElementById('listaUsuariosConectados');
-                  contenedor.innerHTML = '';
-                  snapshot.forEach((doc) => {
-                      const data = doc.data();
-                      const item = document.createElement('span');
-                      item.className = "bg-gray-850 text-gray-300 px-2 py-0.5 rounded-md border border-gray-800 text-[11px] flex items-center gap-1 shadow-sm";
-                      item.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> [B:${data.bus}] ${data.usuario}`;
-                      contenedor.appendChild(item);
-                  });
-              });
+            miPeer.on('call', (llamadaEntrante) => {
+                llamadaEntrante.answer(); 
+                llamadaEntrante.on('stream', (flujoAudioRemoto) => {
+                    reproducirAudioEnVivo(flujoAudioRemoto);
+                    grabarAudioTemporalParaReplay(flujoAudioRemoto);
+                });
+            });
         }
 
-        function emitirPaqueteAudio() {
-            const datosAudio = {
-                usuario: usuario, bus: numBus, timestamp: firebase.firestore.FieldValue.serverTimestamp(), urlAudio: ""
-            };
-            if (esBroadcastGlobal) {
-                db.collection("broadcast_global").add(datosAudio);
+        // CONTROL "UN TOQUE ABRE, OTRO CIERRA"
+        window.toggleMicrofono = async function(esGlobal) {
+            // Si el micrófono ya está encendido, lo cerramos
+            if (flujoMicrofonoLocal) {
+                window.detenerMicrofono();
             } else {
-                db.collection("comunidades").doc(comunidad).collection("mensajes").add(datosAudio);
+                // Si está apagado, lo encendemos
+                await iniciarMicrofonoInterno(esGlobal);
+            }
+        };
+
+        // RUTINA PARA ENCENDER Y LLAMAR
+        async function iniciarMicrofonoInterno(esGlobal) {
+            const btnPTT = document.getElementById('btnPTT');
+            const pttTexto = document.getElementById('pttTexto');
+            const btnBC = document.getElementById('btnBroadcast');
+
+            try {
+                flujoMicrofonoLocal = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                });
+
+                if (esGlobal) {
+                    btnBC.className = "flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-red-950 border border-red-500 text-red-400 font-bold scale-105 z-20 shrink-0";
+                    btnBC.querySelector('span:last-child').textContent = "EN AIRE";
+                } else {
+                    btnPTT.className = "w-28 h-28 rounded-full bg-red-950 border-4 border-red-500 flex flex-col items-center justify-center shadow-xl shadow-red-900/40 cursor-pointer scale-105 z-10 shrink-0";
+                    pttTexto.textContent = "TOCA PARA CERRAR";
+                    pttTexto.className = "text-[9px] font-black text-red-400 uppercase tracking-wider text-center px-1 leading-tight";
+                }
+
+                addDoc(collection(db, "senales_pantalla"), {
+                    usuario: usuario, bus: numBus, peerId: miPeerId, comunidad: comunidad, esGlobal: esGlobal, timestamp: serverTimestamp()
+                });
+
+                const q = esGlobal 
+                    ? collection(db, "usuarios_activos") 
+                    : query(collection(db, "usuarios_activos"), where("comunidad", "==", comunidad));
+                
+                const snapshot = await getDocs(q);
+                
+                snapshot.forEach(documento => {
+                    const datosReceptor = documento.data();
+                    if (datosReceptor.peerId !== miPeerId) { 
+                        const llamada = miPeer.call(datosReceptor.peerId, flujoMicrofonoLocal);
+                        llamadasActivas.push(llamada);
+                    }
+                });
+
+                // INICIA EL TEMPORIZADOR DE SEGURIDAD (Alarma a los 30 segundos)
+                temporizadorAlarma = setTimeout(activarAlarmaOlvido, 30000);
+
+            } catch (error) {
+                alert("Permiso de micrófono denegado.");
+                window.detenerMicrofono();
             }
         }
 
-        function escucharCanales() {
-            const lista = document.getElementById('listaMensajes');
+        // RUTINA PARA APAGAR EL MICRO
+        window.detenerMicrofono = function() {
+            if (!flujoMicrofonoLocal) return;
 
-            desvincularSala = db.collection("comunidades").doc(comunidad).collection("mensajes")
-              .orderBy("timestamp", "desc").limit(2)
-              .onSnapshot((snapshot) => {
-                  snapshot.forEach((doc) => {
-                      const data = doc.data();
-                      mostrarMensajeEnPantalla(`[Grupo] Bus ${data.bus}`, data.usuario, false);
-                      if (data.urlAudio) {
-                          urlUltimoAudioRecibido = data.urlAudio;
-                          document.getElementById('audioReproductor').src = data.urlAudio;
-                      }
-                  });
-              });
+            // PARAR LAS ALARMAS DE SEGURIDAD
+            clearTimeout(temporizadorAlarma);
+            clearInterval(intervaloAlarma);
 
-            desvincularGlobal = db.collection("broadcast_global")
-              .orderBy("timestamp", "desc").limit(2)
-              .onSnapshot((snapshot) => {
-                  snapshot.forEach((doc) => {
-                      const data = doc.data();
-                      mostrarMensajeEnPantalla(`📢 GENERAL (Bus ${data.bus})`, data.usuario, true);
-                      if (data.urlAudio) {
-                          urlUltimoAudioRecibido = data.urlAudio;
-                          document.getElementById('audioReproductor').src = data.urlAudio;
-                      }
-                  });
-              });
+            const btnPTT = document.getElementById('btnPTT');
+            const pttTexto = document.getElementById('pttTexto');
+            const btnBC = document.getElementById('btnBroadcast');
+
+            btnPTT.className = "w-28 h-28 rounded-full bg-yellow-500 border-4 border-yellow-600/40 flex flex-col items-center justify-center transition-all shadow-xl cursor-pointer select-none active:scale-95 z-10 shrink-0";
+            pttTexto.textContent = "Tocar para hablar";
+            pttTexto.className = "text-[9px] font-black text-gray-950 uppercase tracking-wider text-center px-1 leading-tight";
+            
+            btnBC.className = "flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 text-gray-300 cursor-pointer shadow-sm active:scale-95";
+            btnBC.querySelector('span:last-child').textContent = "A Todos";
+
+            flujoMicrofonoLocal.getTracks().forEach(track => track.stop());
+            flujoMicrofonoLocal = null;
+
+            llamadasActivas.forEach(llamada => llamada.close());
+            llamadasActivas = [];
+        };
+
+        // --- SISTEMA DE ALARMA ANTI-OLVIDOS ---
+        function activarAlarmaOlvido() {
+            reproducirPitido(); // Suena inmediatamente
+            intervaloAlarma = setInterval(reproducirPitido, 2000); // Y luego cada 2 segundos
+            
+            const pttTexto = document.getElementById('pttTexto');
+            if (pttTexto.textContent.includes("CERRAR")) {
+                pttTexto.textContent = "¡CIERRA EL MICRO!";
+                pttTexto.className = "text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider text-center leading-tight animate-bounce";
+            }
+        }
+
+        function reproducirPitido() {
+            try {
+                // Sintetizador de audio interno (No necesita descargar archivos MP3)
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.type = "square";
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // Tono de aviso agudo
+                gain.gain.setValueAtTime(0.1, ctx.currentTime); // Volumen seguro
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3); // Dura 0.3 segundos
+            } catch (e) {
+                console.warn("Navegador no soporta pitido interno");
+            }
+        }
+
+        // --- FUNCIONES EXTRA ---
+        function reproducirAudioEnVivo(stream) {
+            const contenedor = document.getElementById('contenedorAudio');
+            const audioElem = document.createElement('audio');
+            audioElem.srcObject = stream;
+            audioElem.autoplay = true;
+            contenedor.appendChild(audioElem);
+            stream.getTracks()[0].onended = () => audioElem.remove();
+        }
+
+        function grabarAudioTemporalParaReplay(stream) {
+            fragmentosAudioEnMemoria = [];
+            grabadoraLocal = new MediaRecorder(stream);
+            grabadoraLocal.ondataavailable = e => fragmentosAudioEnMemoria.push(e.data);
+            grabadoraLocal.onstop = () => {
+                const blob = new Blob(fragmentosAudioEnMemoria, { type: 'audio/webm' });
+                if (urlUltimoAudioMemoria) URL.revokeObjectURL(urlUltimoAudioMemoria);
+                urlUltimoAudioMemoria = URL.createObjectURL(blob);
+            };
+            grabadoraLocal.start();
+            stream.getTracks()[0].onended = () => { if(grabadoraLocal.state !== "inactive") grabadoraLocal.stop(); };
+        }
+
+        window.repetirUltimoAudioLocal = function() {
+            if (urlUltimoAudioMemoria) {
+                const reproductor = document.getElementById('audioReplayLocal');
+                reproductor.src = urlUltimoAudioMemoria;
+                reproductor.play();
+            } else {
+                alert("Aún no has recibido ningún mensaje de radio.");
+            }
+        };
+
+        function escucharConectados() {
+            const q = query(collection(db, "usuarios_activos"), where("comunidad", "==", comunidad));
+            desvincularConectados = onSnapshot(q, (snapshot) => {
+                const contenedor = document.getElementById('listaUsuariosConectados');
+                contenedor.innerHTML = '';
+                let hayCompaneros = false;
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.peerId !== miPeerId) {
+                        hayCompaneros = true;
+                        const item = document.createElement('span');
+                        item.className = "bg-gray-850 text-gray-300 px-2 py-0.5 rounded-md border border-gray-800 text-[11px] flex items-center gap-1 shadow-sm";
+                        item.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> [B:${data.bus}] ${data.usuario}`;
+                        contenedor.appendChild(item);
+                    }
+                });
+
+                if (!hayCompaneros) {
+                    contenedor.innerHTML = `<span class="bg-gray-900 text-gray-400 px-2 py-0.5 rounded-md border border-gray-800 text-[11px] flex items-center gap-1"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></span> Esperando compañeros...</span>`;
+                }
+            });
+        }
+
+        function escucharSenalesVisuales() {
+            const q = query(collection(db, "senales_pantalla"), orderBy("timestamp", "desc"), limit(1));
+            desvincularSenales = onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const data = change.doc.data();
+                        if (!data.peerId || data.peerId === miPeerId) return;
+                        
+                        if (data.esGlobal || data.comunidad === comunidad) {
+                            mostrarMensajeEnPantalla(
+                                data.esGlobal ? `📢 GENERAL (Bus ${data.bus})` : `[Grupo] Bus ${data.bus}`, 
+                                data.usuario, data.esGlobal
+                            );
+                        }
+                    }
+                });
+            });
         }
 
         function mostrarMensajeEnPantalla(origen, conductor, esGlobal) {
             const lista = document.getElementById('listaMensajes');
             if (lista.innerHTML.includes('Canal limpio')) lista.innerHTML = '';
-            
             const item = document.createElement('div');
-            item.className = esGlobal 
-                ? "flex justify-between items-center bg-red-950/30 border border-red-900/40 px-2.5 py-1.5 rounded-lg shadow-inner animate-pulse"
-                : "flex justify-between items-center bg-gray-900 border border-gray-800 px-2.5 py-1.5 rounded-lg shadow-inner";
-            
-            item.innerHTML = `
-                <span class="font-bold text-[11px] ${esGlobal ? 'text-red-400' : 'text-yellow-500'}">${origen} - ${conductor}:</span>
-                <span class="text-gray-400 text-[11px]">🔊 Voz recibida</span>
-            `;
+            item.className = esGlobal ? "flex justify-between items-center bg-red-950/30 border border-red-900/40 px-2.5 py-1.5 rounded-lg shadow-inner animate-pulse" : "flex justify-between items-center bg-gray-900 border border-gray-800 px-2.5 py-1.5 rounded-lg shadow-inner";
+            item.innerHTML = `<span class="font-bold text-[11px] ${esGlobal ? 'text-red-400' : 'text-yellow-500'}">${origen} - ${conductor}:</span><span class="text-gray-400 text-[11px]">🔊 Hablando...</span>`;
             lista.insertBefore(item, lista.firstChild);
         }
 
-        async function conectarBluetooth() {
+        window.salirApp = function() {
+            window.detenerMicrofono();
+            if (miPeerId) deleteDoc(doc(db, "usuarios_activos", miPeerId));
+            if (miPeer) miPeer.destroy();
+            if (desvincularSenales) desvincularSenales();
+            if (desvincularConectados) desvincularConectados();
+            if (wakeLock) wakeLock.release().then(() => wakeLock = null);
+
+            document.getElementById('pantallaApp').classList.remove('flex');
+            document.getElementById('pantallaApp').classList.add('hidden');
+            document.getElementById('pantallaLogin').classList.remove('hidden');
+        };
+
+        window.conectarBluetooth = async function() {
             try {
                 const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
                 alert("Vinculado al manos libres: " + device.name);
             } catch (e) {
-                alert("Buscando sistemas de audio manos libres vinculados a la tablet...");
+                alert("Buscando sistemas de audio...");
             }
-        }
+        };
     </script>
 </body>
 </html>
