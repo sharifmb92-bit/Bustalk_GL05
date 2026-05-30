@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BusTalk Global</title>
-    <!-- Tailwind para los estilos -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    
-    <!-- PeerJS para audio P2P en tiempo real (Estilo Walkie-Talkie real) -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     
     <style>
@@ -27,7 +24,6 @@
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans min-h-screen flex flex-col justify-between p-4 selection:bg-yellow-500/30">
 
-    <!-- PANTALLA DE LOGIN -->
     <div id="pantallaLogin" class="max-w-md w-full mx-auto my-auto bg-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-800">
         <div class="text-center mb-7">
             <div class="inline-flex items-center justify-center p-4 bg-yellow-500/10 rounded-full text-yellow-500 mb-4 animacion-bus">
@@ -62,7 +58,6 @@
         </div>
     </div>
 
-    <!-- PANTALLA PRINCIPAL DE LA APP -->
     <div id="pantallaApp" class="max-w-md w-full mx-auto bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-800 flex-col flex-1 hidden">
         
         <div class="bg-parabolica p-4 flex justify-between items-center border-b border-gray-800 shadow-md">
@@ -80,7 +75,7 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <button onclick="conectarBluetooth()" id="btnBluetooth" class="p-2 bg-gray-800/80 text-blue-400 rounded-lg border border-gray-700/50 hover:bg-gray-700 transition-all cursor-pointer" title="Vincular Manos Libres">
+                <button onclick="conectarBluetooth()" class="p-2 bg-gray-800/80 text-blue-400 rounded-lg border border-gray-700/50 hover:bg-gray-700 transition-all cursor-pointer">
                     🎙️
                 </button>
                 <button onclick="salirApp()" class="p-2 bg-red-950/80 text-red-400 rounded-lg border border-red-900/50 hover:bg-red-900 transition-all cursor-pointer font-bold text-xs">
@@ -102,25 +97,23 @@
                 </div>
 
                 <div class="border-t border-gray-900 pt-2 flex-1 flex flex-col justify-end">
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Actividad de Radio:</span>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Actividad de Radio (Últimos 3):</span>
                     <div id="listaMensajes" class="space-y-1.5 text-xs max-h-[120px] overflow-y-auto">
                         <p class="text-gray-600 italic text-center py-2">Canal limpio y en escucha...</p>
                     </div>
                 </div>
 
-                <!-- Contenedores ocultos de audio -->
                 <div id="contenedorAudio" class="hidden"></div>
                 <audio id="audioReplayLocal" class="hidden"></audio>
             </div>
 
             <div class="flex items-center justify-between gap-2 py-4 px-2 bg-gray-900/50 rounded-2xl border border-gray-800/40">
                 
-                <button onclick="repetirUltimoAudioLocal()" id="btnReplay" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
+                <button onclick="repetirUltimoAudioLocal()" class="flex-1 max-w-[85px] py-4 px-1 rounded-xl text-center bg-gray-950 border border-gray-800 hover:bg-gray-900 transition-all text-gray-300 cursor-pointer shadow-sm active:scale-95">
                     <span class="block text-xl mb-1">↩️</span>
                     <span class="block text-[9px] font-black uppercase tracking-wider leading-none text-gray-400">Repetir</span>
                 </button>
 
-                <!-- NUEVOS BOTONES DE "TOCAR PARA ABRIR / CERRAR" -->
                 <button id="btnPTT" onclick="toggleMicrofono(false)" class="w-28 h-28 rounded-full bg-yellow-500 border-4 border-yellow-600/40 flex flex-col items-center justify-center transition-all duration-300 shadow-xl shadow-yellow-950/10 cursor-pointer select-none active:scale-95 z-10 shrink-0">
                     <span id="pttIcon" class="text-gray-950 text-2xl mb-0.5">🎙️</span>
                     <span id="pttTexto" class="text-[9px] font-black text-gray-950 uppercase tracking-wider text-center px-1 leading-tight">Tocar para hablar</span>
@@ -133,7 +126,6 @@
                 
             </div>
             <p class="text-[10px] text-gray-500 text-center leading-tight">Seguridad Vial: Un toque abre el canal, otro lo cierra. Si olvidas cerrarlo, sonará una alarma.</p>
-
         </div>
     </div>
 
@@ -145,7 +137,6 @@
             query, where, orderBy, limit, serverTimestamp, deleteDoc 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // TUS CREDENCIALES
         const firebaseConfig = {
             apiKey: "AIzaSyC7b6_T0ze2HgXiYHfvUeL12JSXE7ZKogc",
             authDomain: "misturnos-fe3ea.firebaseapp.com",
@@ -160,13 +151,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Variables de la App
         let usuario = "";
         let comunidad = "";
         let numBus = "";
         let wakeLock = null; 
         
-        // Variables WebRTC (Audio)
         let miPeer = null;
         let miPeerId = null;
         let flujoMicrofonoLocal = null;
@@ -177,7 +166,6 @@
         let desvincularSenales = null;
         let desvincularConectados = null;
 
-        // Variables de SEGURIDAD ANTI-OLVIDO
         let temporizadorAlarma = null;
         let intervaloAlarma = null;
 
@@ -187,7 +175,7 @@
 
         async function mantenerPantallaEncendida() {
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
-            catch (err) { console.error('WakeLock no soportado'); }
+            catch (err) {}
         }
 
         window.iniciarApp = function() {
@@ -211,9 +199,16 @@
             iniciarWebRTC();
         };
 
-        // --- MOTOR DE AUDIO ---
         function iniciarWebRTC() {
-            miPeer = new Peer();
+            // MEJORA 1: Añadidos los servidores STUN de Google para que la voz no se bloquee por las antenas 4G o redes cerradas.
+            miPeer = new Peer({
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
 
             miPeer.on('open', (id) => {
                 miPeerId = id;
@@ -224,27 +219,24 @@
                 escucharSenalesVisuales();
             });
 
+            // RECIBIR LLAMADA Y REPRODUCIR
             miPeer.on('call', (llamadaEntrante) => {
                 llamadaEntrante.answer(); 
                 llamadaEntrante.on('stream', (flujoAudioRemoto) => {
-                    reproducirAudioEnVivo(flujoAudioRemoto);
+                    reproducirAudioEnVivo(flujoAudioRemoto, llamadaEntrante);
                     grabarAudioTemporalParaReplay(flujoAudioRemoto);
                 });
             });
         }
 
-        // CONTROL "UN TOQUE ABRE, OTRO CIERRA"
         window.toggleMicrofono = async function(esGlobal) {
-            // Si el micrófono ya está encendido, lo cerramos
             if (flujoMicrofonoLocal) {
                 window.detenerMicrofono();
             } else {
-                // Si está apagado, lo encendemos
                 await iniciarMicrofonoInterno(esGlobal);
             }
         };
 
-        // RUTINA PARA ENCENDER Y LLAMAR
         async function iniciarMicrofonoInterno(esGlobal) {
             const btnPTT = document.getElementById('btnPTT');
             const pttTexto = document.getElementById('pttTexto');
@@ -282,20 +274,17 @@
                     }
                 });
 
-                // INICIA EL TEMPORIZADOR DE SEGURIDAD (Alarma a los 30 segundos)
                 temporizadorAlarma = setTimeout(activarAlarmaOlvido, 30000);
 
             } catch (error) {
-                alert("Permiso de micrófono denegado.");
+                alert("Por favor, permite el acceso al micrófono en tu tablet para poder hablar.");
                 window.detenerMicrofono();
             }
         }
 
-        // RUTINA PARA APAGAR EL MICRO
         window.detenerMicrofono = function() {
             if (!flujoMicrofonoLocal) return;
 
-            // PARAR LAS ALARMAS DE SEGURIDAD
             clearTimeout(temporizadorAlarma);
             clearInterval(intervaloAlarma);
 
@@ -317,11 +306,9 @@
             llamadasActivas = [];
         };
 
-        // --- SISTEMA DE ALARMA ANTI-OLVIDOS ---
         function activarAlarmaOlvido() {
-            reproducirPitido(); // Suena inmediatamente
-            intervaloAlarma = setInterval(reproducirPitido, 2000); // Y luego cada 2 segundos
-            
+            reproducirPitido(); 
+            intervaloAlarma = setInterval(reproducirPitido, 2000); 
             const pttTexto = document.getElementById('pttTexto');
             if (pttTexto.textContent.includes("CERRAR")) {
                 pttTexto.textContent = "¡CIERRA EL MICRO!";
@@ -331,45 +318,54 @@
 
         function reproducirPitido() {
             try {
-                // Sintetizador de audio interno (No necesita descargar archivos MP3)
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                
                 osc.type = "square";
-                osc.frequency.setValueAtTime(880, ctx.currentTime); // Tono de aviso agudo
-                gain.gain.setValueAtTime(0.1, ctx.currentTime); // Volumen seguro
-                
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
                 osc.start();
-                osc.stop(ctx.currentTime + 0.3); // Dura 0.3 segundos
-            } catch (e) {
-                console.warn("Navegador no soporta pitido interno");
-            }
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {}
         }
 
-        // --- FUNCIONES EXTRA ---
-        function reproducirAudioEnVivo(stream) {
+        function reproducirAudioEnVivo(stream, llamadaEntrante) {
             const contenedor = document.getElementById('contenedorAudio');
             const audioElem = document.createElement('audio');
             audioElem.srcObject = stream;
             audioElem.autoplay = true;
+            audioElem.playsInline = true; // MEJORA 2: Obligatorio para tablets iOS/Safari
+            
+            // Forzar reproducción por si la tablet la detiene
+            audioElem.onloadedmetadata = () => {
+                audioElem.play().catch(e => console.error("Auto-play bloqueado por la tablet", e));
+            };
+            
             contenedor.appendChild(audioElem);
+
+            // Eliminar reproductor cuando cuelgan
+            llamadaEntrante.on('close', () => audioElem.remove());
             stream.getTracks()[0].onended = () => audioElem.remove();
         }
 
         function grabarAudioTemporalParaReplay(stream) {
             fragmentosAudioEnMemoria = [];
+            // MEJORA 3: Formato universal para evitar fallos en ciertas tablets
             grabadoraLocal = new MediaRecorder(stream);
+            
             grabadoraLocal.ondataavailable = e => fragmentosAudioEnMemoria.push(e.data);
             grabadoraLocal.onstop = () => {
-                const blob = new Blob(fragmentosAudioEnMemoria, { type: 'audio/webm' });
+                const blob = new Blob(fragmentosAudioEnMemoria); 
                 if (urlUltimoAudioMemoria) URL.revokeObjectURL(urlUltimoAudioMemoria);
                 urlUltimoAudioMemoria = URL.createObjectURL(blob);
             };
+            
             grabadoraLocal.start();
-            stream.getTracks()[0].onended = () => { if(grabadoraLocal.state !== "inactive") grabadoraLocal.stop(); };
+            stream.getTracks()[0].onended = () => { 
+                if(grabadoraLocal && grabadoraLocal.state !== "inactive") grabadoraLocal.stop(); 
+            };
         }
 
         window.repetirUltimoAudioLocal = function() {
@@ -378,7 +374,7 @@
                 reproductor.src = urlUltimoAudioMemoria;
                 reproductor.play();
             } else {
-                alert("Aún no has recibido ningún mensaje de radio.");
+                alert("Aún no has recibido ningún mensaje de radio que se haya podido grabar.");
             }
         };
 
@@ -428,10 +424,17 @@
         function mostrarMensajeEnPantalla(origen, conductor, esGlobal) {
             const lista = document.getElementById('listaMensajes');
             if (lista.innerHTML.includes('Canal limpio')) lista.innerHTML = '';
+            
             const item = document.createElement('div');
             item.className = esGlobal ? "flex justify-between items-center bg-red-950/30 border border-red-900/40 px-2.5 py-1.5 rounded-lg shadow-inner animate-pulse" : "flex justify-between items-center bg-gray-900 border border-gray-800 px-2.5 py-1.5 rounded-lg shadow-inner";
             item.innerHTML = `<span class="font-bold text-[11px] ${esGlobal ? 'text-red-400' : 'text-yellow-500'}">${origen} - ${conductor}:</span><span class="text-gray-400 text-[11px]">🔊 Hablando...</span>`;
+            
             lista.insertBefore(item, lista.firstChild);
+
+            // MEJORA 4: Limpieza de pantalla. Si hay más de 3 mensajes, borra el más antiguo.
+            if (lista.children.length > 3) {
+                lista.removeChild(lista.lastChild);
+            }
         }
 
         window.salirApp = function() {
